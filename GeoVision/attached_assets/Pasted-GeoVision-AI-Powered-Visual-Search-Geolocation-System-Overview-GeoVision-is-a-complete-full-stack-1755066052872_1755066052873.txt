@@ -1,0 +1,239 @@
+GeoVision: AI-Powered Visual Search & Geolocation System
+Overview
+GeoVision is a complete full-stack application designed for military and disaster response applications. The system accepts satellite, drone, or camera images and performs visual similarity matching against a global database to find similar geographic locations. It provides GPS coordinates, distances, bearings, and navigation intelligence.
+
+System Architecture
+Frontend Architecture
+Framework: React 18 with TypeScript
+Build Tool: Vite with Hot Module Replacement (HMR)
+Styling: Tailwind CSS with shadcn/ui component library
+State Management: TanStack Query for server state and caching
+Routing: Wouter for lightweight client-side routing
+Form Handling: React Hook Form with Zod validation
+UI Components: Radix UI primitives for accessibility
+Backend Architecture
+Server: Express.js with TypeScript in ESM mode
+Database: PostgreSQL with Drizzle ORM
+File Processing: Multer for uploads, Sharp for image optimization
+Connection: Neon serverless PostgreSQL with connection pooling
+Session Management: PostgreSQL session store
+Database Schema
+Images Table
+CREATE TABLE images (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  file_name TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  mime_type TEXT NOT NULL,
+  latitude REAL,
+  longitude REAL,
+  feature_vector JSONB,
+  uploaded_at TIMESTAMP DEFAULT NOW(),
+  uploaded_by VARCHAR
+);
+Search Results Table
+CREATE TABLE search_results (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  query_image_id VARCHAR NOT NULL,
+  match_image_id VARCHAR NOT NULL,
+  confidence REAL NOT NULL,
+  distance REAL,
+  bearing REAL,
+  distance_from_north_pole REAL,
+  distance_from_south_pole REAL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+Analysis Sessions Table
+CREATE TABLE analysis_sessions (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  image_id VARCHAR NOT NULL,
+  mode TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'processing',
+  processing_time REAL,
+  total_matches INTEGER,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+Core Features
+1. Image Upload & Processing
+Supported Formats: JPEG, PNG, TIFF
+Size Limit: 50MB maximum
+Processing: Automatic resizing to 800x600 pixels
+Optimization: JPEG compression at 85% quality
+Validation: File type and size validation
+2. Visual Similarity Search
+Feature Extraction: Mock AI feature vector generation (512 dimensions)
+Database: Sample satellite images with real GPS coordinates
+Matching: Returns top 5 most similar locations
+Sample Locations:
+Pentagon (38.87°N, 77.06°W)
+Mount Everest (27.99°N, 86.93°E)
+Dubai Port (25.20°N, 55.27°E)
+Golden Gate Bridge (37.82°N, 122.48°W)
+Taj Mahal (27.18°N, 78.04°E)
+Sydney Harbor (-33.86°S, 151.22°E)
+Pyramids of Giza (29.98°N, 31.13°E)
+Big Ben (51.50°N, 0.12°W)
+3. Geospatial Calculations
+Distance Calculation: Haversine formula for great-circle distances
+Bearing Calculation: True bearing from user location to target
+Coordinate Display: Decimal degrees with directional indicators
+Polar Distances: Distance calculations from North and South poles
+4. Interactive Mapping
+User Location: GPS-based positioning with permission handling
+Multiple Markers: User location and matched targets
+Visual Distinction: Different marker colors for user vs. targets
+Dynamic Updates: Real-time map updates with new search results
+5. Dual Operation Modes
+Civil Mode: Standard interface for emergency response
+Military Mode: Enhanced interface for military intelligence operations
+Mode Switching: Toggle between operational contexts
+Implementation Details
+File Upload Flow
+User selects image file through drag-and-drop or file browser
+Frontend validates file type and size
+FormData object created with image and metadata
+Sharp processes image (resize, optimize, convert to JPEG)
+Image stored in filesystem with database metadata
+Feature vector generated for similarity matching
+Search Algorithm Flow
+Extract features from uploaded image (mock 512-dimensional vector)
+Query database for all sample images with valid coordinates
+Calculate similarity scores (randomized for demonstration)
+Sort by similarity and return top 5 matches
+Calculate geospatial metrics for each match
+Store results in search_results table
+API Endpoints
+POST /api/images/analyze
+Accepts multipart/form-data with image file
+Parameters: mode, userLat, userLon, analysis options
+Returns: sessionId, imageId, initial results
+GET /api/sessions/:sessionId/results
+Returns analysis session details and enriched search results
+Includes matched image coordinates and metadata
+Provides real-time status updates
+GET /api/images/:imageId
+Returns image metadata and details
+Used for displaying image information
+GET /api/images/:imageId/file
+Serves processed image files
+Handles file system access and streaming
+Geospatial Calculations
+Haversine Distance Formula
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+Bearing Calculation
+function calculateBearing(lat1, lon1, lat2, lon2) {
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const lat1Rad = lat1 * Math.PI / 180;
+  const lat2Rad = lat2 * Math.PI / 180;
+  
+  const y = Math.sin(dLon) * Math.cos(lat2Rad);
+  const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - 
+            Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+  
+  let bearing = Math.atan2(y, x) * 180 / Math.PI;
+  return (bearing + 360) % 360;
+}
+User Interface Components
+Image Upload Panel
+Drag-and-drop upload area
+File type and size indicators
+Image preview with analysis progress
+Analysis options (object detection, change detection, thermal matching)
+Results Display
+Confidence scores with color-coded badges
+Distance and bearing information
+Coordinate display with directional indicators
+Interactive map with markers
+Analysis Controls
+Mode selector (Civil/Military)
+Analysis options toggles
+Progress indicators during processing
+Error handling and user feedback
+Database Integration
+Connection Setup
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from "ws";
+neonConfig.webSocketConstructor = ws;
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle({ client: pool, schema });
+Storage Interface
+The system uses a standardized storage interface that abstracts database operations:
+
+createImage(): Store uploaded image metadata
+getAllImages(): Retrieve all images for similarity search
+getImage(): Get specific image details
+createSearchResult(): Store match results with geospatial data
+getSearchResultsByQuery(): Retrieve enriched search results
+Security & Performance
+File Upload Security
+MIME type validation
+File size limits (50MB)
+Path sanitization
+Temporary file cleanup
+Performance Optimizations
+Image compression and resizing
+Database connection pooling
+Query result caching with TanStack Query
+Lazy loading of image files
+Error Handling
+Comprehensive try-catch blocks
+User-friendly error messages
+Graceful degradation for missing permissions
+Database transaction rollbacks
+Future Enhancements
+Production AI Integration
+Replace mock feature extraction with real ResNet50 or Vision Transformer
+Implement FAISS for efficient similarity search
+Add computer vision APIs for advanced image analysis
+Enhanced Mapping
+Integration with Leaflet or Mapbox for advanced mapping
+Satellite imagery overlays
+Flight path calculations
+Terrain analysis
+Change Detection
+Temporal image comparison
+Automated change alerts
+Historical image archive
+Difference visualization
+Development Workflow
+Local Development
+npm install
+npm run dev
+Database Operations
+npm run db:push  # Push schema changes
+File Structure
+├── client/src/
+│   ├── components/     # Reusable UI components
+│   ├── pages/         # Route components
+│   ├── lib/           # Utilities and configurations
+│   └── hooks/         # Custom React hooks
+├── server/
+│   ├── index.ts       # Express server setup
+│   ├── routes.ts      # API endpoint definitions
+│   ├── storage.ts     # Database abstraction layer
+│   └── db.ts          # Database connection
+├── shared/
+│   └── schema.ts      # Shared type definitions
+└── uploads/           # File storage directory
+Deployment Considerations
+Environment Variables
+DATABASE_URL: PostgreSQL connection string
+NODE_ENV: Environment mode (development/production)
+PORT: Server port (default: 5000)
+Production Readiness
+File storage optimization (cloud storage integration)
+CDN for image serving
+Load balancing for high availability
+Monitoring and logging integration
+Backup and disaster recovery procedures
+This documentation covers the complete GeoVision system as implemented, including all architectural decisions, features, and technical details needed for maintenance and future development.

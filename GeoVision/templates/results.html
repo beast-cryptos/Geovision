@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - GeoVision{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-1">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Analysis Complete
+                            </h2>
+                            <p class="mb-0">
+                                Session ID: {{ session.id }} | 
+                                Mode: {{ session.mode|title }} | 
+                                Processing Time: {{ "%.2f"|format(session.processing_time or 0) }}s
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{{ url_for('index') }}" class="btn btn-light">
+                                <i class="fas fa-plus me-1"></i>New Analysis
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Query Image Section -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-image me-2"></i>Query Image
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <img src="{{ url_for('serve_image', image_id=image.id) }}" 
+                         class="img-fluid rounded mb-3" alt="Query Image">
+                    <p class="small text-muted mb-1">
+                        <strong>File:</strong> {{ image.file_name }}
+                    </p>
+                    <p class="small text-muted mb-1">
+                        <strong>Size:</strong> {{ "%.1f"|format(image.file_size / 1024) }} KB
+                    </p>
+                    <p class="small text-muted mb-0">
+                        <strong>Uploaded:</strong> {{ image.uploaded_at.strftime('%Y-%m-%d %H:%M') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Summary -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Search Results Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-success rounded-circle p-3 me-3">
+                                    <i class="fas fa-map-marker-alt text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="mb-0">{{ session.total_matches or 0 }}</h4>
+                                    <small class="text-muted">Locations Found</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            {% if results %}
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-warning rounded-circle p-3 me-3">
+                                    <i class="fas fa-percentage text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="mb-0">{{ "%.1f"|format(results[0].result.confidence * 100) }}%</h4>
+                                    <small class="text-muted">Best Match Confidence</small>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if session.mode == 'military' %}
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>MILITARY MODE:</strong> Enhanced intelligence operations active
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Map -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-globe me-2"></i>Interactive Map
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Results -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Detailed Match Results
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if results %}
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Location</th>
+                                    <th>Confidence</th>
+                                    <th>Coordinates</th>
+                                    <th>Distance</th>
+                                    <th>Bearing</th>
+                                    <th>Polar Distances</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result_data in results %}
+                                {% set result = result_data.result %}
+                                {% set match_image = result_data.image %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">#{{ loop.index }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ match_image.file_name.replace('_satellite.jpg', '').replace('_', ' ').title() }}</strong>
+                                    </td>
+                                    <td>
+                                        {% set confidence_class = 'success' if result.confidence > 0.9 else 'warning' if result.confidence > 0.8 else 'danger' %}
+                                        <span class="badge bg-{{ confidence_class }}">
+                                            {{ "%.1f"|format(result.confidence * 100) }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <code>{{ "%.4f"|format(match_image.latitude) }}°{{ 'N' if match_image.latitude >= 0 else 'S' }}</code><br>
+                                        <code>{{ "%.4f"|format(match_image.longitude) }}°{{ 'E' if match_image.longitude >= 0 else 'W' }}</code>
+                                    </td>
+                                    <td>
+                                        {% if result.distance %}
+                                        <span class="text-info">{{ "%.1f"|format(result.distance) }} km</span>
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.bearing %}
+                                        <span class="text-warning">{{ "%.1f"|format(result.bearing) }}°</span>
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>
+                                            <strong>N:</strong> {{ "%.0f"|format(result.distance_from_north_pole) }} km<br>
+                                            <strong>S:</strong> {{ "%.0f"|format(result.distance_from_south_pole) }} km
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No similar locations found</h5>
+                        <p class="text-muted">Try uploading a different image or adjusting analysis parameters</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script>
+// Initialize map with results
+const mapData = {
+    results: [
+        {% if results %}
+        {% for result_data in results %}
+        {
+            lat: {{ result_data.image.latitude }},
+            lng: {{ result_data.image.longitude }},
+            name: "{{ result_data.image.file_name.replace('_satellite.jpg', '').replace('_', ' ').title() }}",
+            confidence: {{ result_data.result.confidence }},
+            distance: {{ result_data.result.distance or 0 }},
+            bearing: {{ result_data.result.bearing or 0 }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+        {% endif %}
+    ]
+};
+
+// Initialize the map
+initializeResultsMap(mapData);
+</script>
+{% endblock %}

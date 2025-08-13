@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-dark text-light border-warning">
+                <div class="card-body text-center">
+                    <h1 class="display-5 fw-bold">
+                        <i class="fas fa-satellite me-3"></i>
+                        GeoVision Intelligence System
+                    </h1>
+                    <p class="lead mb-0">
+                        AI-Powered Visual Search & Geolocation for Military and Disaster Response
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-upload me-2"></i>
+                        Image Analysis Upload
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('upload_image') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                        <!-- Operation Mode Selection -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-cog me-2"></i>Operation Mode
+                                </label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="mode" id="civilMode" value="civil" checked>
+                                    <label class="form-check-label" for="civilMode">
+                                        <i class="fas fa-hospital me-1"></i> Civil (Disaster Response)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="mode" id="militaryMode" value="military">
+                                    <label class="form-check-label" for="militaryMode">
+                                        <i class="fas fa-shield-alt me-1"></i> Military (Intelligence Operations)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Your Location
+                                </label>
+                                <button type="button" class="btn btn-outline-success btn-sm d-block mb-2" onclick="getCurrentLocation()">
+                                    <i class="fas fa-crosshairs me-1"></i> Get Current Location
+                                </button>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control form-control-sm" name="userLat" id="userLat" placeholder="Latitude" step="any">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control form-control-sm" name="userLon" id="userLon" placeholder="Longitude" step="any">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- File Upload -->
+                        <div class="mb-4">
+                            <label for="imageFile" class="form-label fw-bold">
+                                <i class="fas fa-image me-2"></i>Satellite/Drone Image
+                            </label>
+                            <div class="drop-zone" id="dropZone">
+                                <div class="text-center">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                    <p class="mb-2">Drag and drop your image here, or</p>
+                                    <input type="file" class="form-control" name="image" id="imageFile" accept=".jpg,.jpeg,.png,.tiff,.tif" required>
+                                </div>
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Supported formats: JPEG, PNG, TIFF • Maximum size: 50MB
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Analysis Options -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-search me-2"></i>Analysis Options
+                            </label>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="objectDetection" checked disabled>
+                                        <label class="form-check-label" for="objectDetection">
+                                            Object Detection
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="changeDetection">
+                                        <label class="form-check-label" for="changeDetection">
+                                            Change Detection
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="thermalMatching">
+                                        <label class="form-check-label" for="thermalMatching">
+                                            Thermal Matching
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                <i class="fas fa-rocket me-2"></i>
+                                Begin Analysis
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Capabilities -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="text-center mb-4">
+                <i class="fas fa-cogs me-2"></i>System Capabilities
+            </h3>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-satellite fa-2x text-success mb-3"></i>
+                    <h6>Visual Similarity Search</h6>
+                    <p class="small text-muted">AI-powered matching against global satellite database</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-globe fa-2x text-info mb-3"></i>
+                    <h6>GPS Intelligence</h6>
+                    <p class="small text-muted">Precise coordinates, distances, and bearings</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-map fa-2x text-warning mb-3"></i>
+                    <h6>Interactive Mapping</h6>
+                    <p class="small text-muted">Real-time visualization with multiple markers</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-danger">
+                <div class="card-body text-center">
+                    <i class="fas fa-shield-alt fa-2x text-danger mb-3"></i>
+                    <h6>Secure Operations</h6>
+                    <p class="small text-muted">Military-grade security and classification</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5>Processing Image...</h5>
+                <p class="text-muted mb-0">Analyzing satellite data and calculating geospatial intelligence</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Get current location
+function getCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                document.getElementById('userLat').value = position.coords.latitude.toFixed(6);
+                document.getElementById('userLon').value = position.coords.longitude.toFixed(6);
+            },
+            function(error) {
+                alert('Error getting location: ' + error.message);
+            }
+        );
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
+}
+
+// Form submission with loading modal
+document.getElementById('uploadForm').addEventListener('submit', function() {
+    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    modal.show();
+});
+
+// Drag and drop functionality
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('imageFile');
+
+dropZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+});
+
+dropZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+});
+
+dropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+    }
+});
+</script>
+{% endblock %}
